@@ -8,7 +8,7 @@ char_limit = 380  # Regolato in base al tuo test
 # Espressioni regolari per estrarre i dati
 patterns = {
     "Nome": r"(?:Nome|Nominativo)[:\s]+([A-Z][a-z]+\s[A-Z][a-z]+)",
-    "Data di nascita": r"(?:Data di nascita|nascita)[:\s]+(\d{2}/\d{2}/\d{4})",
+    "Data di nascita": r"(?:Data di nascita)\s*[:\s]*([\d]{2}/[\d]{2}/(?:[\d]{2}|[\d]{4}))",
     "Sesso": r"(?:Sesso)[:\s]+(Maschio|Femmina|Uomo|Donna|M|F)",
     "Codice Fiscale": r"(?:Cd fiscale|Codice Fiscale)[:\s]+([A-Z0-9]{16})"
 }
