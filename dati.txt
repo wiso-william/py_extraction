@@ -1,0 +1,17 @@
+--- ecg.pdf ---
+Nome: Rosangela Felice
+Data di nascita: Non trovato
+Sesso: f
+Codice Fiscale: Non trovato
+
+--- ematico-test.pdf ---
+Nome: Rabio ranieri
+Data di nascita: Non trovato
+Sesso: M
+Codice Fiscale: Rnrfba76h14h501a
+
+--- holter.pdf ---
+Nome: Gaetanina Piccirillo
+Data di nascita: 08/10/1966
+Sesso: Donna
+Codice Fiscale: Non trovato
