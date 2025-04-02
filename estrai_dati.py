@@ -1,6 +1,7 @@
 import os
 import pdfplumber
 import re
+import json
 
 pdf_folder = "pdf"
 char_limit = 380  # Regolato in base al tuo test
@@ -28,14 +29,16 @@ def extract_info(text):
         extracted_data[key] = match.group(1) if match else "Non trovato"
     return extracted_data
 
+# Lista per raccogliere i dati di tutti i PDF
+pdf_data_list = []
+
 # Legge i PDF e cerca i dati
 for filename in os.listdir(pdf_folder):
     if filename.endswith(".pdf"):
         pdf_path = os.path.join(pdf_folder, filename)
         text = extract_first_page_text(pdf_path)
         data = extract_info(text)
+        pdf_data_list.append({"filename": filename, "data": data})
         
-        print(f"--- {filename} ---")
-        for key, value in data.items():
-            print(f"{key}: {value}")
-        print("\n" + "="*50 + "\n")
+# Stampa il JSON formattato
+print(json.dumps(pdf_data_list, indent=4, ensure_ascii=False))
