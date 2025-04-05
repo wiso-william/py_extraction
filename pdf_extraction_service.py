@@ -28,6 +28,9 @@ def extract_info(text):
     for key, pattern in patterns.items():
         match = re.search(pattern, text, re.IGNORECASE)
         extracted[key] = match.group(1) if match else "Non trovato"
+        # Converti il Codice Fiscale in maiuscolo se trovato
+    if extracted.get("Codice Fiscale") != "Non trovato":
+        extracted["Codice Fiscale"] = extracted["Codice Fiscale"].upper()
     return extracted
 
 def convert_date(date_str):
