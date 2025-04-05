@@ -10,7 +10,7 @@ app = Flask(__name__)
 # Espressioni regolari per l'estrazione dei dati
 patterns = {
     "Nome": r"(?:Nome|Nominativo)[:\s]+([A-Z][a-z]+\s[A-Z][a-z]+)",
-    "Data di nascita": r"(?:Data di nascita)\s*[:\s]*([\d]{2}/[\d]{2}/(?:[\d]{2}|[\d]{4}))",
+    "Data di nascita": r"(?:Data di nascita)\s*[:\s]*([\d]{2}/[\d]{2}/([\d]{4}|[\d]{2}))",
     "Sesso": r"(?:Sesso)[:\s]+(Maschio|Femmina|Uomo|Donna|M|F)",
     "Codice Fiscale": r"(?:Cd fiscale|Codice Fiscale)[:\s]+([A-Z0-9]{16})"
 }
@@ -34,10 +34,23 @@ def extract_info(text):
     return extracted
 
 def convert_date(date_str):
-    """Converte la data da formato italiano a ISO (yyyy-MM-dd)"""
+    if date_str == "Non trovato":
+        return ""
+    
     try:
-        return datetime.strptime(date_str, "%d/%m/%Y").date().isoformat()
-    except Exception:
+        day, month, year = date_str.split('/')
+        if len(year) == 2:  # Anno a 2 cifre (es. '66')
+            year = f"19{year}"
+        elif len(year) == 4:  # Anno a 4 cifre (es. '1966')
+            pass  # Usa l'anno così com'è
+        else:
+            return ""  # Formato non supportato
+        
+        iso_date = f"{year}-{month}-{day}"
+        datetime.strptime(iso_date, "%Y-%m-%d")  # Validazione
+        return iso_date
+    except Exception as e:
+        print(f"⚠️ Errore conversione data '{date_str}': {e}")
         return ""
 
 def normalize_sex(sex_value):

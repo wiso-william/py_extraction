@@ -2,6 +2,8 @@ import os
 import pdfplumber
 import re
 import json
+from datetime import datetime
+
 
 pdf_folder = "pdf"
 char_limit = 380  # Regolato in base al tuo test
