@@ -10,13 +10,14 @@ app = Flask(__name__)
 # Espressioni regolari per l'estrazione dei dati
 patterns = {
     "Nome": r"(?:Nome|Nominativo)[:\s]+([A-Z][a-z]+\s[A-Z][a-z]+)",
-    "Data di nascita": r"(?:Data di nascita)\s*[:\s]*([\d]{2}/[\d]{2}/([\d]{4}|[\d]{2}))",
+    "Data di nascita": r"(?:Data di nascita)\s*:?\s*([\d]{2}/[\d]{2}/([\d]{4}|[\d]{2}))",
+    "Età": r"Età\s*:\s*(\d+)\s*(?:anni)?",  # Supporta sia "Età: 48" che "Età: 48 anni"
     "Sesso": r"(?:Sesso)[:\s]+(Maschio|Femmina|Uomo|Donna|M|F)",
     "Codice Fiscale": r"(?:Cd fiscale|Codice Fiscale)[:\s]+([A-Z0-9]{16})"
 }
 
 def extract_first_page_text(pdf_path, char_limit=380):
-    """Estrae il testo dalla prima pagina del PDF, limitato a un certo numero di caratteri"""
+    """Estrae il testo dalla prima pagina del PDF"""
     with pdfplumber.open(pdf_path) as pdf:
         first_page = pdf.pages[0] if pdf.pages else None
         text = first_page.extract_text() if first_page else ""
@@ -27,30 +28,34 @@ def extract_info(text):
     extracted = {}
     for key, pattern in patterns.items():
         match = re.search(pattern, text, re.IGNORECASE)
-        extracted[key] = match.group(1) if match else "Non trovato"
-        # Converti il Codice Fiscale in maiuscolo se trovato
-    if extracted.get("Codice Fiscale") != "Non trovato":
+        if match:
+            if key == "Età":  # Converti l'età in intero
+                extracted[key] = int(match.group(1))
+            else:
+                extracted[key] = match.group(1)
+        else:
+            extracted[key] = None if key == "Età" else "Non trovato"
+    
+    # Converti il Codice Fiscale in maiuscolo se trovato
+    if extracted.get("Codice Fiscale") and extracted["Codice Fiscale"] != "Non trovato":
         extracted["Codice Fiscale"] = extracted["Codice Fiscale"].upper()
+    
     return extracted
 
 def convert_date(date_str):
+    """Converte la data da formato italiano a ISO (yyyy-MM-dd)"""
     if date_str == "Non trovato":
         return ""
     
     try:
         day, month, year = date_str.split('/')
-        if len(year) == 2:  # Anno a 2 cifre (es. '66')
+        if len(year) == 2:  # Anno a 2 cifre (es. '90')
             year = f"19{year}"
-        elif len(year) == 4:  # Anno a 4 cifre (es. '1966')
-            pass  # Usa l'anno così com'è
-        else:
-            return ""  # Formato non supportato
-        
         iso_date = f"{year}-{month}-{day}"
         datetime.strptime(iso_date, "%Y-%m-%d")  # Validazione
         return iso_date
     except Exception as e:
-        print(f"⚠️ Errore conversione data '{date_str}': {e}")
+        print(f"⚠️ Errore nella conversione della data '{date_str}': {e}")
         return ""
 
 def normalize_sex(sex_value):
@@ -93,12 +98,11 @@ def upload_pdf():
             "codiceFiscale": raw_data["Codice Fiscale"] if raw_data["Codice Fiscale"] != "Non trovato" else "",
             "birthDate": convert_date(raw_data["Data di nascita"]),
             "sex": normalize_sex(raw_data["Sesso"]),
-            "age": None,
+            "age": raw_data["Età"],  # Età come intero (None se non trovata)
             "height": None,
             "weight": None
         }
 
-        # 🔽 MODIFICA QUI CON IL TUO ENDPOINT SPRING BOOT CORRETTO
         springboot_api_url = "http://localhost:8080/api/v1/profiles"
 
         # Invia i dati al backend Spring Boot
