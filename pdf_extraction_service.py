@@ -11,10 +11,16 @@ app = Flask(__name__)
 patterns = {
     "Nome": r"(?:Nome|Nominativo)[:\s]+([A-Z][a-z]+\s[A-Z][a-z]+)",
     "Data di nascita": r"(?:Data di nascita)\s*:?\s*([\d]{2}/[\d]{2}/([\d]{4}|[\d]{2}))",
-    "Età": r"Età\s*:\s*(\d+)\s*(?:anni)?",  # Supporta sia "Età: 48" che "Età: 48 anni"
+    "Età": r"Età\s*:\s*(\d+)\s*(?:anni)?",
     "Sesso": r"(?:Sesso)[:\s]+(Maschio|Femmina|Uomo|Donna|M|F)",
     "Codice Fiscale": r"(?:Cd fiscale|Codice Fiscale)[:\s]+([A-Z0-9]{16})"
 }
+
+def format_surname(surname):
+    """Formatta il cognome con prima lettera maiuscola e resto minuscolo"""
+    if not surname or surname == "Non trovato":
+        return ""
+    return surname[0].upper() + surname[1:].lower()
 
 def extract_first_page_text(pdf_path, char_limit=380):
     """Estrae il testo dalla prima pagina del PDF"""
@@ -29,14 +35,13 @@ def extract_info(text):
     for key, pattern in patterns.items():
         match = re.search(pattern, text, re.IGNORECASE)
         if match:
-            if key == "Età":  # Converti l'età in intero
+            if key == "Età":
                 extracted[key] = int(match.group(1))
             else:
                 extracted[key] = match.group(1)
         else:
             extracted[key] = None if key == "Età" else "Non trovato"
     
-    # Converti il Codice Fiscale in maiuscolo se trovato
     if extracted.get("Codice Fiscale") and extracted["Codice Fiscale"] != "Non trovato":
         extracted["Codice Fiscale"] = extracted["Codice Fiscale"].upper()
     
@@ -49,10 +54,10 @@ def convert_date(date_str):
     
     try:
         day, month, year = date_str.split('/')
-        if len(year) == 2:  # Anno a 2 cifre (es. '90')
+        if len(year) == 2:
             year = f"19{year}"
         iso_date = f"{year}-{month}-{day}"
-        datetime.strptime(iso_date, "%Y-%m-%d")  # Validazione
+        datetime.strptime(iso_date, "%Y-%m-%d")
         return iso_date
     except Exception as e:
         print(f"⚠️ Errore nella conversione della data '{date_str}': {e}")
@@ -90,22 +95,21 @@ def upload_pdf():
         nome_completo = raw_data["Nome"] if raw_data["Nome"] != "Non trovato" else ""
         nome_parts = nome_completo.split()
         name = nome_parts[0] if len(nome_parts) >= 1 else ""
-        surname = nome_parts[1] if len(nome_parts) >= 2 else ""
+        surname = format_surname(nome_parts[1] if len(nome_parts) >= 2 else "")
 
         extracted_data = {
             "name": name,
-            "surname": surname,
+            "surname": surname,  # Cognome già formattato
             "codiceFiscale": raw_data["Codice Fiscale"] if raw_data["Codice Fiscale"] != "Non trovato" else "",
             "birthDate": convert_date(raw_data["Data di nascita"]),
             "sex": normalize_sex(raw_data["Sesso"]),
-            "age": raw_data["Età"],  # Età come intero (None se non trovata)
+            "age": raw_data["Età"],
             "height": None,
             "weight": None
         }
 
         springboot_api_url = "http://localhost:8080/api/v1/profiles"
 
-        # Invia i dati al backend Spring Boot
         spring_response = requests.post(
             springboot_api_url,
             json=extracted_data,
